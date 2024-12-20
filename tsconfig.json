@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "target": "ES6",
+    "module": "commonjs",
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "strictPropertyInitialization": false,
+    "esModuleInterop": true,
+    "typeRoots": ["./node_modules/@types", "./"],
+     "types": ["node", "express"]
+  },
+  "include": ["src/**/*.ts", "types.d.ts"]
+}
