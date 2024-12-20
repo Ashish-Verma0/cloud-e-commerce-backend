@@ -9,7 +9,7 @@ import { compareSync, hashSync } from "bcryptjs";
 import sendEmail from "../../utils/sendEmail";
 import crypto from "crypto";
 import { data } from "../../contant";
-import sendToken, { sendTokenToSeller } from "../../utils/sendToken";
+import { sendTokenToSeller } from "../../utils/sendToken";
 
 const sellerRepository = AppDataSource.getRepository(Seller);
 

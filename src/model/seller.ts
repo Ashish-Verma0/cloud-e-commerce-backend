@@ -24,7 +24,7 @@ export class Seller {
   ownerPassword: string;
 
   @Column()
-  ownerPhone: number;
+  ownerPhone: string;
 
   @Column()
   ownerAadhar: string;
@@ -41,8 +41,8 @@ export class Seller {
   @Column()
   shopAddress: string;
 
-  @Column({ default: false })
-  shopVerified: boolean;
+  @Column()
+  shopVerified: string;
 
   @Column({ nullable: true })
   otpCode: string;
