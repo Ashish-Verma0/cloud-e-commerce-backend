@@ -27,11 +27,23 @@ export const createSeller = async (
 ): Promise<void> => {
   try {
     const sellerData = plainToInstance(CreateSellerDTO, req.body);
-    console.log("ashish node", req);
     if (req.file) {
       sellerData.shopLogo = req.file.filename;
     }
+    const isEmailExists = await sellerRepository.findOneBy({
+      ownerEmail: req.body.ownerEmail,
+    });
 
+    if (isEmailExists) {
+      res.status(400).json({
+        success: false,
+        message: "email already exists",
+      });
+      return;
+    }
+    if (req.body) {
+      sellerData.shopVerified = Boolean(req.body.shopVerified);
+    }
     const errors = await validate(sellerData);
 
     if (errors.length > 0) {
@@ -42,6 +54,7 @@ export const createSeller = async (
       });
       return;
     }
+
     const hashedPassword = await hashSync(sellerData.ownerPassword, 10);
     const seller = sellerRepository.create({
       ...sellerData,

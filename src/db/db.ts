@@ -18,5 +18,16 @@ const AppDataSource = new DataSource({
   logging: false,
   dropSchema: true,
 });
+// const AppDataSource = new DataSource({
+//   type: "postgres",
+//   host: "localhost",
+//   port: 5432,
+//   username: "postgres",
+//   password: "postgres",
+//   database: "test",
+//   entities: [User, Product, Seller, Category, subCategory],
+//   synchronize: true,
+//   logging: false,
+// });
 
 export default AppDataSource;

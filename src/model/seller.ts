@@ -23,7 +23,7 @@ export class Seller {
   @Column()
   ownerPassword: string;
 
-  @Column()
+  @Column({ type: "varchar", length: 10 })
   ownerPhone: string;
 
   @Column()
@@ -41,8 +41,8 @@ export class Seller {
   @Column()
   shopAddress: string;
 
-  @Column()
-  shopVerified: string;
+  @Column({ type: "boolean", default: false })
+  shopVerified: boolean;
 
   @Column({ nullable: true })
   otpCode: string;

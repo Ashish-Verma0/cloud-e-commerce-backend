@@ -14,7 +14,7 @@ export class CreateSellerDTO {
   ownerPassword: string;
 
   @IsNotEmpty()
-  @IsNumber()
+  @IsString()
   ownerPhone: string;
 
   @IsNotEmpty()
@@ -38,7 +38,7 @@ export class CreateSellerDTO {
   shopAddress: string;
 
   @IsBoolean()
-  shopVerified: string;
+  shopVerified: boolean;
 }
 
 export class LoginSellerDTO {
