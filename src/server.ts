@@ -1,7 +1,8 @@
 require("reflect-metadata");
-import AppDataSource from "./db/db"
-import app from "./app"
-const PORT = 4000;
+import AppDataSource from "./db/db";
+import app from "./app";
+import { PORTS } from "../contant";
+const PORT = PORTS || 4000;
 
 AppDataSource.initialize()
   .then(() => {
