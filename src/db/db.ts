@@ -16,6 +16,7 @@ const AppDataSource = new DataSource({
   entities: [User, Product, Seller, Category, subCategory],
   synchronize: true,
   logging: false,
+  dropSchema: true,
 });
 
 export default AppDataSource;
