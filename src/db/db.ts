@@ -6,28 +6,28 @@ import { Category } from "../model/category";
 import { subCategory } from "../model/subCategory";
 import { dbConfig } from "../../contant";
 
-const AppDataSource = new DataSource({
-  type: "postgres",
-  host: dbConfig.Hostname || "localhost",
-  port: dbConfig.Port || 5432,
-  username: dbConfig.Username || "postgres",
-  password: dbConfig.Password || "postgres",
-  database: dbConfig.Database || "test",
-  entities: [User, Product, Seller, Category, subCategory],
-  synchronize: true,
-  logging: false,
-  dropSchema: true,
-});
 // const AppDataSource = new DataSource({
 //   type: "postgres",
-//   host: "localhost",
-//   port: 5432,
-//   username: "postgres",
-//   password: "postgres",
-//   database: "test",
+//   host: dbConfig.Hostname || "localhost",
+//   port: dbConfig.Port || 5432,
+//   username: dbConfig.Username || "postgres",
+//   password: dbConfig.Password || "postgres",
+//   database: dbConfig.Database || "test",
 //   entities: [User, Product, Seller, Category, subCategory],
 //   synchronize: true,
 //   logging: false,
+//   dropSchema: true,
 // });
+const AppDataSource = new DataSource({
+  type: "postgres",
+  host: "localhost",
+  port: 5432,
+  username: "postgres",
+  password: "postgres",
+  database: "test",
+  entities: [User, Product, Seller, Category, subCategory],
+  synchronize: true,
+  logging: false,
+});
 
 export default AppDataSource;

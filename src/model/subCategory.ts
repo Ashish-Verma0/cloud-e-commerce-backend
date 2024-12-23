@@ -17,15 +17,15 @@ export class subCategory {
   @Column()
   subcategoryName: string;
 
-  @Column()
-  subcategoryLogo: string;
+  @Column({ type: "json" })
+  subcategoryLogo?: Record<string, any>;
 
   @ManyToOne(() => Category, (Category) => Category.subCategory)
-  categoryId: Category;
+  category: Category;
 
   @ManyToOne(() => Seller, (seller) => seller.subCategory)
-  sellerId: Seller;
+  seller: Seller;
 
-  @OneToMany(() => Product, (product) => product.subCategoryId)
+  @OneToMany(() => Product, (product) => product.subCategory)
   product: Product[];
 }

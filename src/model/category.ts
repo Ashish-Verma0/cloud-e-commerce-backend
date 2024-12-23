@@ -17,15 +17,15 @@ export class Category {
   @Column()
   categoryName: string;
 
-  @Column()
-  categoryLogo: string;
+  @Column({ type: "json" })
+  categoryLogo?: Record<string, any>;
 
   @ManyToOne(() => Seller, (seller) => seller.categories)
   seller: Seller;
 
-  @OneToMany(() => subCategory, (subCategory) => subCategory.categoryId)
+  @OneToMany(() => subCategory, (subCategory) => subCategory.category)
   subCategory: subCategory[];
 
-  @OneToMany(() => Product, (product) => product.categoryId)
+  @OneToMany(() => Product, (product) => product.category)
   product: Product[];
 }

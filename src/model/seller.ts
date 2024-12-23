@@ -53,9 +53,9 @@ export class Seller {
   @OneToMany(() => Category, (category) => category.seller)
   categories: Category[];
 
-  @OneToMany(() => subCategory, (subCategory) => subCategory.sellerId)
+  @OneToMany(() => subCategory, (subCategory) => subCategory.seller)
   subCategory: subCategory[];
 
-  @OneToMany(() => Product, (product) => product.sellerId)
+  @OneToMany(() => Product, (product) => product.seller)
   product: Product[];
 }
