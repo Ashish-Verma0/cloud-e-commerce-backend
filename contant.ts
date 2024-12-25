@@ -1,5 +1,6 @@
 export const data = {
   jwt_secret: "sdgfkjsgfkhjaskfhs",
+  seller_jwt_secret: "uhkjkhbhjsdbhjfdh",
 
   SMPT_SERVICE: "gmail",
 

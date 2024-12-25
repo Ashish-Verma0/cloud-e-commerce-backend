@@ -3,11 +3,13 @@ import express from "express";
 import path from "path";
 import { verifySellerToken } from "../../utils/verifyToken";
 import {
+  createBulkProduct,
   createProduct,
   deleteProduct,
   getAllProducts,
   getAllProductsBySeller,
   getProductById,
+  sellerOutOfStockProduct,
   updateProduct,
 } from "../controller/product.";
 
@@ -35,12 +37,33 @@ const imageUpload = multer({
   },
 });
 
+const excelUpload = multer({
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+  },
+  storage: multer.memoryStorage(), // Use memoryStorage
+  fileFilter: function (req, file, cb) {
+    if (!file.originalname.match(/\.(xls|xlsx)$/i)) {
+      return cb(new Error("Please upload a valid Excel file (xls or xlsx)"));
+    }
+    cb(null, true);
+  },
+});
+
+productRoute.post(
+  "/bulk/create",
+  excelUpload.single("excel"),
+  verifySellerToken,
+  createBulkProduct
+);
+
 productRoute.post(
   "/create",
   imageUpload.array("productimage", 10),
   verifySellerToken,
   createProduct
 );
+
 productRoute.put(
   "/update",
   imageUpload.array("productimage", 10),
@@ -49,7 +72,8 @@ productRoute.put(
 );
 productRoute.get("/all", getAllProducts);
 productRoute.get("/all/seller", verifySellerToken, getAllProductsBySeller);
+productRoute.get("/all/out-stock", verifySellerToken, sellerOutOfStockProduct);
 productRoute.get("/productDetail", getProductById);
-productRoute.delete("/DELETE", verifySellerToken, deleteProduct);
+productRoute.delete("/delete", verifySellerToken, deleteProduct);
 
 export default productRoute;

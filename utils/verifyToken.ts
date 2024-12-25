@@ -51,7 +51,7 @@ export const verifySellerToken = (
       return;
     }
 
-    jwt.verify(token, data.jwt_secret as string, (err, seller) => {
+    jwt.verify(token, data.seller_jwt_secret as string, (err, seller) => {
       if (err) {
         res.status(401).json({ success: false, message: "Token is not valid" });
         return;

@@ -5,6 +5,8 @@ import { Seller } from "../model/seller";
 import { Category } from "../model/category";
 import { subCategory } from "../model/subCategory";
 import { dbConfig } from "../../contant";
+import { SellerLocation } from "../model/sellerLocation";
+import { Orders } from "../model/orders";
 
 // const AppDataSource = new DataSource({
 //   type: "postgres",
@@ -25,7 +27,15 @@ const AppDataSource = new DataSource({
   username: "postgres",
   password: "postgres",
   database: "test",
-  entities: [User, Product, Seller, Category, subCategory],
+  entities: [
+    User,
+    Product,
+    Seller,
+    Category,
+    subCategory,
+    SellerLocation,
+    Orders,
+  ],
   synchronize: true,
   logging: false,
 });

@@ -274,7 +274,7 @@ export const getAllCategory = async (
     if (!seller) {
       res.status(404).json({
         success: false,
-        message: "Shop name not found.",
+        message: "seller not found.",
       });
       return;
     }

@@ -4,7 +4,10 @@ import path from "path";
 import { verifySellerToken } from "../../utils/verifyToken";
 import {
   createSubcategory,
+  deletesubcategory,
+  getAllSellerSubCategory,
   getAllSubCategory,
+  updateSubcategory,
 } from "../controller/subCategory";
 
 const subcategoryRoute = express.Router();
@@ -37,6 +40,14 @@ subcategoryRoute.post(
   verifySellerToken,
   createSubcategory
 );
+subcategoryRoute.put(
+  "/update",
+  verifySellerToken,
+  imageUpload.single("subcategoryLogo"),
+  updateSubcategory
+);
+subcategoryRoute.delete("/delete", verifySellerToken, deletesubcategory);
+subcategoryRoute.get("/all/seller", verifySellerToken, getAllSellerSubCategory);
 subcategoryRoute.get(
   "/all",
 

@@ -8,6 +8,8 @@ import {
 import { Category } from "./category";
 import { subCategory } from "./subCategory";
 import { Product } from "./product";
+import { SellerLocation } from "./sellerLocation";
+import { Orders } from "./orders";
 
 @Entity()
 export class Seller {
@@ -58,4 +60,10 @@ export class Seller {
 
   @OneToMany(() => Product, (product) => product.seller)
   product: Product[];
+
+  @OneToMany(() => SellerLocation, (sellerlocation) => sellerlocation.seller)
+  sellerLocation: SellerLocation[];
+
+  @OneToMany(() => Orders, (order) => order.seller)
+  orders: Orders[];
 }

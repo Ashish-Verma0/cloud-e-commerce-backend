@@ -28,6 +28,7 @@ class ProductImageDto {
   filename: string;
 
   @IsString()
+  @IsOptional()
   path: string;
 
   @IsNumber()
@@ -74,6 +75,32 @@ export class CreateProductDto {
   @ValidateNested({ each: true })
   @Type(() => CustomerReviewDto)
   customerReview?: CustomerReviewDto[];
+}
+
+export class CreateBulkProductDto {
+  @IsString()
+  title: string;
+
+  @IsString()
+  desc: string;
+
+  @IsNumber()
+  price: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  rating?: number;
+
+  @IsNumber()
+  @Min(0)
+  stock: number;
+
+  @IsString()
+  productimage: string;
+
+  @IsString()
+  isProductPopular: string;
 }
 
 export class UpdateProductDto {

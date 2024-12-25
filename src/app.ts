@@ -7,6 +7,8 @@ import sellerRoute from "./routes/seller.routes";
 import categoryRoute from "./routes/category.routes";
 import productRoute from "./routes/product..routes";
 import subcategoryRoute from "./routes/subcategory.routes";
+import sellerLocationRoute from "./routes/sellerLocation.routes";
+import orderRoute from "./routes/order.routes";
 const app = express();
 
 app.use(cors());
@@ -22,6 +24,8 @@ app.use("/seller", sellerRoute);
 app.use("/category", categoryRoute);
 app.use("/subcategory", subcategoryRoute);
 app.use("/product", productRoute);
+app.use("/sellerLocation", sellerLocationRoute);
+app.use("/order", orderRoute);
 
 app.get("/", (req, res) => {
   res.send("hello");

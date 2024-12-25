@@ -10,7 +10,9 @@ import {
   CreateProductDto,
   UpdateProductDto,
 } from "../dtos/create-product.dtos";
+import * as XLSX from "xlsx";
 import { validate } from "class-validator";
+import { LessThan } from "typeorm";
 
 const productRepository = AppDataSource.getRepository(Product);
 const sellerRepository = AppDataSource.getRepository(Seller);
@@ -30,6 +32,14 @@ interface QueryRequest extends Request {
     page: string;
   };
   files?: multer.File;
+  file?: multer.File;
+}
+
+interface ProductRow {
+  shopName: string;
+  categoryName: string;
+  subcategoryName?: string;
+  [key: string]: any;
 }
 
 export const createProduct = async (
@@ -109,11 +119,23 @@ export const createProduct = async (
       }
     }
 
+    const alreadyExists = await productRepository.find({
+      where: { title: productData.title },
+    });
+
+    if (alreadyExists?.length > 0) {
+      res.status(409).json({
+        success: false,
+        message: `Product Title Already Exists ${alreadyExists[0]?.title}`,
+      });
+      return;
+    }
+
     const product = await productRepository.create({
       ...productData,
       seller,
       category,
-      subCategory: subcategory || null, // Handle null subcategory
+      subCategory: subcategory || null,
     });
 
     if (!product) {
@@ -339,11 +361,28 @@ export const deleteProduct = async (
     return;
   } catch (error) {
     console.log(error);
-    res.status(500).json({
-      success: false,
-      message: "internal server error",
-    });
-    return;
+    if (error.code) {
+      switch (error.code) {
+        case "23503":
+          res.status(400).json({
+            success: false,
+            message:
+              "Product cannot be deleted because it has associated with categories and subcategories.",
+          });
+          break;
+        default:
+          res.status(500).json({
+            success: false,
+            message: "Internal server error.",
+          });
+          break;
+      }
+    } else {
+      res.status(500).json({
+        success: false,
+        message: "An unexpected error occurred.",
+      });
+    }
   }
 };
 
@@ -377,7 +416,7 @@ export const getAllProducts = async (
     if (!seller) {
       res.status(404).json({
         success: false,
-        message: "shopName not found",
+        message: "seller not found",
       });
       return;
     }
@@ -477,7 +516,7 @@ export const getAllProductsBySeller = async (
     if (!req.query || !shopName) {
       res.status(404).json({
         success: false,
-        message: "shopName and categoryId must be valid",
+        message: "shopName must be valid",
       });
       return;
     }
@@ -487,7 +526,7 @@ export const getAllProductsBySeller = async (
     if (!seller) {
       res.status(404).json({
         success: false,
-        message: "shopName not found",
+        message: "seller not found",
       });
       return;
     }
@@ -496,7 +535,6 @@ export const getAllProductsBySeller = async (
       seller: { shopName: seller.shopName },
     };
 
-    // Count total products for pagination
     const totalProducts = await productRepository.count({
       where: whereCondition,
     });
@@ -516,7 +554,7 @@ export const getAllProductsBySeller = async (
       where: whereCondition,
       skip,
       take: resultPerPage,
-      relations: ["category", "subCategory"], // Uncomment if relations are needed
+      relations: ["category", "subCategory"],
     });
 
     res.status(200).json({
@@ -569,6 +607,230 @@ export const getProductById = async (req, res) => {
       success: true,
       message: "product details found successfully",
       data: productData,
+    });
+    return;
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+    return;
+  }
+};
+
+export const createBulkProduct = async (
+  req: QueryRequest,
+  res: Response
+): Promise<void> => {
+  const queryRunner = AppDataSource.createQueryRunner();
+
+  try {
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    if (!req.file) {
+      res.status(400).json({
+        success: false,
+        message: "Excel file is required",
+      });
+      return;
+    }
+    let workbook;
+    try {
+      workbook = XLSX.read(req.file.buffer, { type: "buffer" });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: "Failed to read the Excel file",
+        error: error.message,
+      });
+      return;
+    }
+
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+    const rows: ProductRow[] = XLSX.utils.sheet_to_json(sheet);
+
+    if (!rows || rows.length === 0) {
+      res.status(400).json({
+        success: false,
+        message: "No valid data found in the Excel sheet",
+      });
+      return;
+    }
+
+    const errors: any[] = [];
+    const addedProducts: any[] = [];
+    let processedCount = 0;
+
+    for (const row of rows) {
+      try {
+        const { shopName, categoryName, subcategoryName, ...productData } = row;
+
+        row.isProductPopular = row.isProductPopular.replace(/"/g, "").trim();
+        row.price = Number(row.price);
+        row.stock = Number(row.stock);
+        row.rating = row.rating ? Number(row.rating) : undefined;
+
+        if (!shopName || !categoryName) {
+          throw new Error("shopName and categoryName must be provided");
+        }
+
+        const seller = await queryRunner.manager.findOne(Seller, {
+          where: { shopName },
+        });
+        if (!seller) throw new Error(`Seller '${shopName}' not found`);
+
+        const category = await queryRunner.manager.findOne(Category, {
+          where: { categoryName },
+        });
+        if (!category) throw new Error(`Category '${categoryName}' not found`);
+
+        let subcategory = null;
+        if (subcategoryName) {
+          subcategory = await queryRunner.manager.findOne(subCategory, {
+            where: { subcategoryName },
+          });
+          if (!subcategory) {
+            throw new Error(`Subcategory '${subcategoryName}' not found`);
+          }
+        }
+
+        const productDto = plainToInstance(CreateProductDto, productData);
+        productDto.productimage = JSON.parse(row.productimage);
+
+        const validationErrors = await validate(productDto);
+
+        if (validationErrors.length > 0) {
+          const errorMessages = validationErrors
+            .map((err) => Object.values(err.constraints || {}).join(", "))
+            .join("; ");
+          throw new Error(`Validation failed: ${errorMessages}`);
+        }
+
+        const alreadyExists = await productRepository.find({
+          where: { title: productDto.title },
+        });
+
+        if (alreadyExists) {
+          res.status(409).json({
+            success: false,
+            message: `Product Title Already Exists ${alreadyExists[0].title}`,
+          });
+          return;
+        }
+
+        const product = queryRunner.manager.create(Product, {
+          ...productDto,
+          seller,
+          category,
+          subCategory: subcategory || null,
+        });
+
+        await queryRunner.manager.save(Product, product);
+        addedProducts.push(product);
+      } catch (error) {
+        errors.push({
+          row,
+          message: error.message,
+        });
+      }
+
+      processedCount++;
+    }
+
+    await queryRunner.commitTransaction();
+
+    res.status(201).json({
+      success: true,
+      message: "Bulk product creation completed",
+      addedProducts,
+      errors,
+      processedCount,
+    });
+  } catch (error) {
+    await queryRunner.rollbackTransaction();
+
+    res.status(500).json({
+      success: false,
+      message: "Bulk product creation failed. All operations were rolled back.",
+      error: error.message,
+    });
+  } finally {
+    await queryRunner.release();
+  }
+};
+
+export const sellerOutOfStockProduct = async (
+  req: QueryRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const shopName = req.query.shopName as string;
+
+    const resultPerPage = req.query.resultPerPage
+      ? Number(req.query.resultPerPage)
+      : 10;
+    const page = req.query.page ? Number(req.query.page) : 1;
+
+    if (!req.query || !shopName) {
+      res.status(404).json({
+        success: false,
+        message: "shopName must be valid",
+      });
+      return;
+    }
+
+    const seller = await sellerRepository.findOneBy({ shopName });
+
+    if (!seller) {
+      res.status(404).json({
+        success: false,
+        message: "seller not found",
+      });
+      return;
+    }
+
+    const whereCondition: any = {
+      seller: { shopName: seller.shopName },
+      stock: LessThan(2), // Only products with stock less than 2
+    };
+
+    const totalProducts = await productRepository.count({
+      where: whereCondition,
+    });
+
+    if (!totalProducts) {
+      res.status(404).json({
+        success: false,
+        message: "No Data Found",
+      });
+      return;
+    }
+
+    const totalPages = Math.ceil(totalProducts / resultPerPage);
+    const skip = (page - 1) * resultPerPage;
+
+    const allProducts = await productRepository.find({
+      where: whereCondition,
+      skip,
+      take: resultPerPage,
+      relations: ["category", "subCategory"],
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Products found successfully",
+      data: {
+        products: allProducts,
+        pagination: {
+          totalProducts,
+          totalPages,
+          currentPage: page,
+          resultPerPage,
+        },
+      },
     });
     return;
   } catch (error) {

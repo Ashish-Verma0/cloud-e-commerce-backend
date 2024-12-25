@@ -1,7 +1,14 @@
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
+import {
+  Column,
+  Entity,
+  ManyToOne,
+  OneToMany,
+  PrimaryGeneratedColumn,
+} from "typeorm";
 import { Category } from "./category";
 import { subCategory } from "./subCategory";
 import { Seller } from "./seller";
+import { Orders } from "./orders";
 
 @Entity()
 export class Product {
@@ -31,7 +38,7 @@ export class Product {
     mimetype: string;
     destination: string;
     filename: string;
-    path: string;
+    path?: string;
     size: number;
   }[];
 
@@ -49,4 +56,7 @@ export class Product {
 
   @ManyToOne(() => Seller, (seller) => seller.product)
   seller: Seller;
+
+  @OneToMany(() => Orders, (order) => order.product)
+  orders: Orders;
 }

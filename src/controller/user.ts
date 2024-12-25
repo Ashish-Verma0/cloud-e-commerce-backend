@@ -15,6 +15,25 @@ interface MulterRequest extends Request {
     mimetype: string;
   };
 }
+interface MulterForUpdateRequest extends Request {
+  file?: {
+    filename: string;
+    path: string;
+    mimetype: string;
+  };
+  user?: {
+    id: number;
+    isAdmin?: boolean;
+    [key: string]: any;
+  };
+}
+export interface CustomRequest extends Request {
+  user?: {
+    id: number;
+    isAdmin?: boolean;
+    [key: string]: any;
+  };
+}
 
 export const createUser = async (
   req: MulterRequest,
@@ -79,13 +98,6 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-export interface CustomRequest extends Request {
-  user?: {
-    id: number;
-    isAdmin?: boolean;
-    [key: string]: any;
-  };
-}
 export const userProfile = async (
   req: CustomRequest,
   res: Response
@@ -129,18 +141,6 @@ export const userById = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-interface MulterForUpdateRequest extends Request {
-  file?: {
-    filename: string;
-    path: string;
-    mimetype: string;
-  };
-  user?: {
-    id: number;
-    isAdmin?: boolean;
-    [key: string]: any;
-  };
-}
 export const userUpdate = async (
   req: MulterForUpdateRequest,
   res: Response

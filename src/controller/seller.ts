@@ -118,7 +118,7 @@ export const loginSeller = async (
       return;
     }
 
-    const token = await jwt.sign({ id: isSeller.id }, data.jwt_secret, {
+    const token = await jwt.sign({ id: isSeller.id }, data.seller_jwt_secret, {
       expiresIn: "1h",
     });
 

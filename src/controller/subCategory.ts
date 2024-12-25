@@ -4,7 +4,10 @@ import AppDataSource from "../db/db";
 import { subCategory } from "../model/subCategory";
 import { plainToInstance } from "class-transformer";
 import { validate } from "class-validator";
-import { CreateSubCategoryDto } from "../dtos/create-subcategory.dtos";
+import {
+  CreateSubCategoryDto,
+  updateSubCategoryDto,
+} from "../dtos/create-subcategory.dtos";
 import { Seller } from "../model/seller";
 import { Category } from "../model/category";
 
@@ -19,6 +22,8 @@ interface QueryRequest extends Request {
     sellerId?: string;
     shopName?: string;
     categoryName?: string;
+    page?: string;
+    limit?: string;
   };
   file?: multer.File;
 }
@@ -28,13 +33,12 @@ export const createSubcategory = async (
   res: Response
 ): Promise<void> => {
   try {
-    const sellerId = Number(req.query.sellerId);
-    const categoryId = Number(req.query.categoryId);
-
-    if (!req.query || isNaN(sellerId) || isNaN(categoryId)) {
+    const shopName = req.query.shopName;
+    const categoryName = req.query.categoryName;
+    if (!req.query || !shopName || !categoryName) {
       res.status(400).json({
         success: false,
-        message: "Invalid or missing sellerId",
+        message: "Invalid or missing shopName",
       });
       return;
     }
@@ -53,7 +57,7 @@ export const createSubcategory = async (
     }
 
     const seller = await sellerRepository.findOneBy({
-      id: sellerId,
+      shopName,
     });
 
     if (!seller) {
@@ -65,7 +69,7 @@ export const createSubcategory = async (
     }
 
     const category = await categoryRepository.findOneBy({
-      id: categoryId,
+      categoryName,
     });
 
     if (!category) {
@@ -118,16 +122,16 @@ export const updateSubcategory = async (
 ): Promise<void> => {
   try {
     const subcategoryId = Number(req.query.subcategoryId);
-
+    // console.log("req.query", req.query);
     if (!req.query || isNaN(subcategoryId)) {
       res.status(400).json({
         success: false,
-        message: "Invalid or missing sellerId",
+        message: "Invalid or missing subcategoryId",
       });
       return;
     }
 
-    const subcategoryData = plainToInstance(CreateSubCategoryDto, req.body);
+    const subcategoryData = plainToInstance(updateSubCategoryDto, req.body);
 
     const errors = await validate(subcategoryData);
 
@@ -143,11 +147,11 @@ export const updateSubcategory = async (
     const subcategory = await subCategoryRepository.findOneBy({
       id: subcategoryId,
     });
-
+    // console.log("subcategory", subcategory);
     if (!subcategory) {
       res.status(404).json({
         success: true,
-        message: "seller not found",
+        message: "subcategory not found",
       });
       return;
     }
@@ -162,9 +166,9 @@ export const updateSubcategory = async (
 
     await subCategoryRepository.save(subcategory);
 
-    res.status(201).json({
+    res.status(200).json({
       success: true,
-      message: "subcategory created successfully",
+      message: "subcategory updated successfully",
       subcategory,
     });
     return;
@@ -188,7 +192,7 @@ export const deletesubcategory = async (
     if (!req.query || isNaN(subcategoryId)) {
       res.status(400).json({
         success: false,
-        message: "Invalid or missing sellerId",
+        message: "Invalid or missing subcategoryId",
       });
       return;
     }
@@ -200,7 +204,7 @@ export const deletesubcategory = async (
     if (!subcategory) {
       res.status(404).json({
         success: false,
-        message: "subcategoryId not found",
+        message: "subcategory not found",
       });
       return;
     }
@@ -214,11 +218,28 @@ export const deletesubcategory = async (
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({
-      success: false,
-      message: "Internal server error",
-    });
-    return;
+    if (error.code) {
+      switch (error.code) {
+        case "23503":
+          res.status(400).json({
+            success: false,
+            message:
+              "Subcategory cannot be deleted as it is associated with other entities.",
+          });
+          break;
+        default:
+          res.status(500).json({
+            success: false,
+            message: "Internal server error.",
+          });
+          break;
+      }
+    } else {
+      res.status(500).json({
+        success: false,
+        message: "An unexpected error occurred.",
+      });
+    }
   }
 };
 
@@ -232,7 +253,7 @@ export const getAllSubCategory = async (
     if (!req.query || !shopName || !categoryName) {
       res.status(404).json({
         success: false,
-        message: "sellerId is required",
+        message: "shopName is required",
       });
       return;
     }
@@ -285,6 +306,75 @@ export const getAllSubCategory = async (
     res.status(500).json({
       success: false,
       message: "internal server error",
+    });
+    return;
+  }
+};
+
+export const getAllSellerSubCategory = async (
+  req: QueryRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const { shopName, page = 1, limit = 10 } = req.query;
+    console.log(req.query);
+    if (!shopName) {
+      res.status(400).json({
+        success: false,
+        message: "shopName is required",
+      });
+      return;
+    }
+
+    const seller = await sellerRepository.findOneBy({
+      shopName,
+    });
+
+    if (!seller) {
+      res.status(404).json({
+        success: false,
+        message: "Seller not found",
+      });
+      return;
+    }
+
+    const [subcategorydata, totalCategories] =
+      await subCategoryRepository.findAndCount({
+        where: { seller: { shopName } },
+        relations: ["category"],
+        skip: (Number(page) - 1) * Number(limit),
+        take: Number(limit),
+      });
+
+    if (!subcategorydata.length) {
+      res.status(404).json({
+        success: false,
+        message: "Subcategories not found",
+      });
+      return;
+    }
+
+    const totalPages = Math.ceil(totalCategories / Number(limit));
+
+    res.status(200).json({
+      success: true,
+      message: "Subcategories found successfully",
+      data: {
+        subcategory: subcategorydata,
+        pagination: {
+          totalCategories,
+          totalPages,
+          currentPage: Number(page),
+          resultPerPage: Number(limit),
+        },
+      },
+    });
+    return;
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
     });
     return;
   }
