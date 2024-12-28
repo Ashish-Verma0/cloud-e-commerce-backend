@@ -4,15 +4,13 @@ import app from "./app";
 import dotenv from "dotenv";
 
 dotenv.config();
-// import cluster from "node:cluster";
-// import { cpus } from "os";
 
-const PORT = Number(process.env.PORTS) || 4000;
+const PORT = Number(process.env.PORT) || 4000;
 
 AppDataSource.initialize()
   .then(() => {
     console.log("Database connected");
-    app.listen(PORT, "0.0.0.0", () => {
+    app.listen(PORT, () => {
       console.log(`Server is running ON PORT:-${PORT}`);
     });
   })
@@ -20,6 +18,8 @@ AppDataSource.initialize()
     console.error("Error during Data Source initialization:", error);
   });
 
+// import cluster from "node:cluster";
+// import { cpus } from "os";
 // if (cluster.isPrimary) {
 //   const numCPUs = cpus().length;
 //   for (let i = 0; i < numCPUs; i++) {

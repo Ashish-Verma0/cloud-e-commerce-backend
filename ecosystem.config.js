@@ -8,6 +8,11 @@ module.exports = {
       autorestart: true,
       watch: false,
       max_memory_restart: "500M",
+      env: {
+        NODE_ENV: "production",
+        PORT: process.env.PORT || 10000,
+      },
     },
   ],
 };
+console.log("env", process.env.PORT);

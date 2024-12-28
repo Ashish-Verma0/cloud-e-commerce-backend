@@ -8,19 +8,19 @@ const db_1 = __importDefault(require("./db/db"));
 const app_1 = __importDefault(require("./app"));
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
-// import cluster from "node:cluster";
-// import { cpus } from "os";
-const PORT = Number(process.env.PORTS) || 4000;
+const PORT = Number(process.env.PORT) || 4000;
 db_1.default.initialize()
     .then(() => {
     console.log("Database connected");
-    app_1.default.listen(PORT, "0.0.0.0", () => {
+    app_1.default.listen(PORT, () => {
         console.log(`Server is running ON PORT:-${PORT}`);
     });
 })
     .catch((error) => {
     console.error("Error during Data Source initialization:", error);
 });
+// import cluster from "node:cluster";
+// import { cpus } from "os";
 // if (cluster.isPrimary) {
 //   const numCPUs = cpus().length;
 //   for (let i = 0; i < numCPUs; i++) {
