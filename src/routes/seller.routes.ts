@@ -1,6 +1,12 @@
 import multer from "multer";
 import express from "express";
-import { createSeller, loginSeller, sellerProfile } from "../controller/seller";
+import {
+  createSeller,
+  loginSeller,
+  sellerProfile,
+  verifySellerEmail,
+  verifySellerOtp,
+} from "../controller/seller";
 import path from "path";
 import { verifySellerToken } from "../../utils/verifyToken";
 
@@ -31,5 +37,7 @@ const imageUpload = multer({
 sellerRoute.post("/create", imageUpload.single("shopLogo"), createSeller);
 sellerRoute.post("/login", loginSeller);
 sellerRoute.get("/profile", verifySellerToken, sellerProfile);
+sellerRoute.post("/verify-email", verifySellerToken, verifySellerEmail);
+sellerRoute.post("/verify-otp", verifySellerToken, verifySellerOtp);
 
 export default sellerRoute;

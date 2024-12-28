@@ -26,54 +26,280 @@ export const createOrder = async (
 ): Promise<void> => {
   try {
     const orderData = plainToInstance(CreateOrderDto, req.body);
-    orderData.productId = Number(req.body.productId);
-    orderData.userId = Number(req.body.userId);
+    // console.log("orderData", orderData);
     const errors = await validate(orderData);
-    // console.log("req.body", orderData);
+
     if (errors.length > 0) {
       res.status(400).json({ success: false, errors });
       return;
     }
 
-    const { shopName, productId, userId, ...orderDetails } = orderData;
+    const { shopName, userId, orderedItem, ...orderDetails } = orderData;
 
-    const seller = await sellerRepository.findOneBy({
-      shopName: shopName.toString(),
-    });
-
+    const seller = await sellerRepository.findOneBy({ shopName });
     const user = await userRepository.findOneBy({ id: userId });
-    const product = await productRepository.findOneBy({
-      id: productId,
-    });
 
-    if (!seller || !user || !product) {
+    if (!seller || !user) {
       res.status(404).json({
         success: false,
-        message: "Invalid sellerId, userId, or productId",
+        message: "Invalid seller or user information",
       });
       return;
     }
 
-    const newOrder = orderRepository.create({
-      ...orderDetails,
-      seller,
-      user,
-      product,
-      status: "pending",
-    });
+    await AppDataSource.transaction(async (transactionalEntityManager) => {
+      const productDetails = await Promise.all(
+        orderedItem.map(async (item) => {
+          const product = await transactionalEntityManager
+            .getRepository(Product)
+            .createQueryBuilder("product")
+            .where("product.id = :id", { id: item.productId })
+            .setLock("pessimistic_write")
+            .getOne();
 
-    await orderRepository.save(newOrder);
+          if (!product || product.stock < item.quantity) {
+            throw new Error(
+              `Product ${item.productId} is unavailable or out of stock`
+            );
 
-    res.status(201).json({
-      success: true,
-      message: "Order created successfully",
-      data: newOrder,
+            // res.status(500).json({
+            //   success: false,
+            //   message: `Product ${item.productId} is unavailable or out of stock`,
+            // });
+            // return;
+          }
+
+          product.stock -= item.quantity;
+          await transactionalEntityManager.save(product);
+
+          return { ...product, orderQuantity: item.quantity };
+        })
+      );
+
+      const newOrder = transactionalEntityManager.create(Orders, {
+        ...orderDetails,
+        seller,
+        user,
+        orderedItems: orderedItem,
+        status: "pending",
+      });
+
+      await transactionalEntityManager.save(newOrder);
+
+      // Emit stock update event
+      // io.emit(
+      //   "product-updated",
+      //   productDetails.map((product) => ({
+      //     productId: product.id,
+      //     updatedStock: product.stock,
+      //   }))
+      // );
+
+      res.status(201).json({
+        success: true,
+        message: "Order created successfully",
+        data: {
+          ...newOrder,
+          orderedItems: productDetails.map((product) => ({
+            productId: product.id,
+            title: product.title,
+            desc: product.desc,
+            price: product.price,
+            orderQuantity: product.orderQuantity,
+            remainingStock: product.stock,
+            productimage: product.productimage,
+          })),
+        },
+      });
     });
+    return;
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, message: "Internal Server Error" });
+    // console.error(error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Internal Server Error",
+    });
+    return;
   }
 };
+
+// export const createOrder = async (
+//   req: Request,
+//   res: Response
+// ): Promise<void> => {
+//   try {
+//     const orderData = plainToInstance(CreateOrderDto, req.body);
+
+//     const errors = await validate(orderData);
+
+//     if (errors.length > 0) {
+//       res.status(400).json({ success: false, errors });
+//       return;
+//     }
+
+//     const { shopName, userId, orderedItem, ...orderDetails } = orderData;
+
+//     const seller = await sellerRepository.findOneBy({ shopName });
+//     const user = await userRepository.findOneBy({ id: userId });
+
+//     if (!seller || !user) {
+//       res.status(404).json({
+//         success: false,
+//         message: "Invalid seller or user information",
+//       });
+//       return;
+//     }
+
+//     const orderedItemsWithDetails = [];
+
+//     for (const item of orderedItem) {
+//       const product = await productRepository.findOneBy({ id: item.productId });
+
+//       if (!product) {
+//         res.status(404).json({
+//           success: false,
+//           message: `Product with id ${item.productId} not found`,
+//         });
+//         return;
+//       }
+
+//       if (product.stock < item.quantity) {
+//         res.status(400).json({
+//           success: false,
+//           message: `Insufficient stock for product: ${product.title}`,
+//         });
+//         return;
+//       }
+
+//       // Deduct stock and save
+//       product.stock -= item.quantity;
+//       await productRepository.save(product);
+
+//       // Add product details to response
+//       orderedItemsWithDetails.push({
+//         productId: product.id,
+//         title: product.title,
+//         desc: product.desc,
+//         price: product.price,
+//         orderQuantity: item.quantity,
+//         remainingStock: product.stock, // Reflect updated stock
+//         productimage: product.productimage,
+//       });
+//     }
+
+//     const newOrder = orderRepository.create({
+//       ...orderDetails,
+//       seller,
+//       user,
+//       orderedItems: orderedItem,
+//       status: "pending",
+//     });
+
+//     await orderRepository.save(newOrder);
+
+//     res.status(201).json({
+//       success: true,
+//       message: "Order created successfully",
+//       data: {
+//         ...newOrder,
+//         orderedItems: orderedItemsWithDetails,
+//       },
+//     });
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({
+//       success: false,
+//       message: error.message || "Internal Server Error",
+//     });
+//   }
+// };
+
+// export const createOrder = async (
+//   req: Request,
+//   res: Response
+// ): Promise<void> => {
+//   try {
+//     const orderData = plainToInstance(CreateOrderDto, req.body);
+
+//     const errors = await validate(orderData);
+
+//     if (errors.length > 0) {
+//       res.status(400).json({ success: false, errors });
+//       return;
+//     }
+
+//     const { shopName, userId, orderedItem, ...orderDetails } = orderData;
+
+//     const seller = await sellerRepository.findOneBy({ shopName });
+//     const user = await userRepository.findOneBy({ id: userId });
+
+//     if (!seller || !user) {
+//       res.status(404).json({
+//         success: false,
+//         message: "Invalid seller or user information",
+//       });
+//       return;
+//     }
+
+//     // Fetch and validate all products in orderedItem
+//     const productDetails = await Promise.all(
+//       orderedItem.map(async (item) => {
+//         const product = await productRepository.findOneBy({
+//           id: item.productId,
+//         });
+//         console.log("item", item);
+//         if (!product || product.stock < item.quantity) {
+//           throw new Error(
+//             `Product ${item.productId} is unavailable or out of stock`
+//           );
+//         }
+//         return { ...product, orderQuantity: item.quantity };
+//       })
+//     );
+
+//     // Update stock for each product
+//     await Promise.all(
+//       productDetails.map(async (product) => {
+//         product.stock -= product.orderQuantity;
+//         await productRepository.save(product);
+//       })
+//     );
+
+//     // Create and save the order
+//     const newOrder = orderRepository.create({
+//       ...orderDetails,
+//       seller,
+//       user,
+//       orderedItems: orderedItem,
+//       status: "pending",
+//     });
+
+//     await orderRepository.save(newOrder);
+
+//     res.status(201).json({
+//       success: true,
+//       message: "Order created successfully",
+//       data: {
+//         ...newOrder,
+//         orderedItems: productDetails.map((product) => ({
+//           productId: product.id,
+//           title: product.title,
+//           desc: product.desc,
+//           price: product.price,
+//           orderQuantity: product.orderQuantity,
+//           remainingStock: product.stock,
+//           productimage: product.productimage,
+//         })),
+//       },
+//     });
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({
+//       success: false,
+//       message: error.message || "Internal Server Error",
+//     });
+//   }
+// };
 
 export const updateOrder = async (
   req: QueryRequest,
@@ -128,16 +354,14 @@ export const getOrdersBySeller = async (
     const limit = Number(req.query.limit) || 10;
 
     if (!shopName) {
-      res.status(404).json({
+      res.status(400).json({
         success: false,
         message: "shopName is required",
       });
       return;
     }
 
-    const sellerData = await sellerRepository.findOneBy({
-      shopName,
-    });
+    const sellerData = await sellerRepository.findOneBy({ shopName });
 
     if (!sellerData) {
       res.status(404).json({
@@ -149,10 +373,66 @@ export const getOrdersBySeller = async (
 
     const [orders, totalOrders] = await orderRepository.findAndCount({
       where: { seller: { shopName: sellerData.shopName } },
-      relations: ["user", "product"],
+      relations: ["user"],
       order: { createdAt: "DESC" },
       take: limit,
       skip: (page - 1) * limit,
+    });
+
+    if (!orders.length) {
+      res.status(200).json({
+        success: true,
+        message: "No orders found",
+        data: {
+          orders: [],
+          pagination: {
+            totalOrders: 0,
+            totalPages: 0,
+            currentPage: page,
+            resultPerPage: limit,
+          },
+        },
+      });
+      return;
+    }
+
+    const productIds = Array.from(
+      new Set(
+        orders.flatMap((order) =>
+          order.orderedItems.map((item) => item.productId)
+        )
+      )
+    );
+
+    const products = await productRepository.findByIds(productIds);
+
+    const productMap = new Map(
+      products.map((product) => [product.id, product])
+    );
+
+    const ordersWithDetails = orders.map((order) => {
+      const orderedItemsWithDetails = order.orderedItems.map((item) => {
+        const product = productMap.get(item.productId);
+
+        if (!product) {
+          throw new Error(`Product with ID ${item.productId} not found`);
+        }
+
+        return {
+          productId: product.id,
+          title: product.title,
+          desc: product.desc,
+          price: product.price,
+          orderQuantity: item.quantity,
+          remainingStock: product.stock,
+          productimage: product.productimage,
+        };
+      });
+
+      return {
+        ...order,
+        orderedItems: orderedItemsWithDetails,
+      };
     });
 
     const totalPages = Math.ceil(totalOrders / limit);
@@ -161,7 +441,7 @@ export const getOrdersBySeller = async (
       success: true,
       message: "Orders found successfully",
       data: {
-        order: orders,
+        orders: ordersWithDetails,
         pagination: {
           totalOrders,
           totalPages,
@@ -172,7 +452,10 @@ export const getOrdersBySeller = async (
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ success: false, message: "Internal Server Error" });
+    res.status(500).json({
+      success: false,
+      message: error.message || "Internal Server Error",
+    });
   }
 };
 
@@ -185,10 +468,10 @@ export const getOrdersByUser = async (
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 10;
 
-    if (!req.query || isNaN(userId)) {
-      res.status(404).json({
+    if (!userId || isNaN(userId)) {
+      res.status(400).json({
         success: false,
-        message: "shopName is required",
+        message: "userId is required and should be a valid number",
       });
       return;
     }
@@ -200,17 +483,73 @@ export const getOrdersByUser = async (
     if (!userData) {
       res.status(404).json({
         success: false,
-        message: "userData not found",
+        message: "User not found",
       });
       return;
     }
 
     const [orders, totalOrders] = await orderRepository.findAndCount({
       where: { user: { id: userData.id } },
-      relations: ["product"],
+      // relations: ["user"],
       order: { createdAt: "DESC" },
       take: limit,
       skip: (page - 1) * limit,
+    });
+
+    if (!orders.length) {
+      res.status(200).json({
+        success: true,
+        message: "No orders found",
+        data: {
+          orders: [],
+          pagination: {
+            totalOrders: 0,
+            totalPages: 0,
+            currentPage: page,
+            resultPerPage: limit,
+          },
+        },
+      });
+      return;
+    }
+
+    const productIds = Array.from(
+      new Set(
+        orders.flatMap((order) =>
+          order.orderedItems.map((item) => item.productId)
+        )
+      )
+    );
+
+    const products = await productRepository.findByIds(productIds);
+
+    const productMap = new Map(
+      products.map((product) => [product.id, product])
+    );
+
+    const ordersWithDetails = orders.map((order) => {
+      const orderedItemsWithDetails = order.orderedItems.map((item) => {
+        const product = productMap.get(item.productId);
+
+        if (!product) {
+          throw new Error(`Product with ID ${item.productId} not found`);
+        }
+
+        return {
+          productId: product.id,
+          title: product.title,
+          desc: product.desc,
+          price: product.price,
+          orderQuantity: item.quantity,
+          remainingStock: product.stock,
+          productimage: product.productimage,
+        };
+      });
+
+      return {
+        ...order,
+        orderedItems: orderedItemsWithDetails,
+      };
     });
 
     const totalPages = Math.ceil(totalOrders / limit);
@@ -219,7 +558,7 @@ export const getOrdersByUser = async (
       success: true,
       message: "Orders found successfully",
       data: {
-        order: orders,
+        orders: ordersWithDetails,
         pagination: {
           totalOrders,
           totalPages,
@@ -230,9 +569,47 @@ export const getOrdersByUser = async (
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ success: false, message: "Internal Server Error" });
+    res.status(500).json({
+      success: false,
+      message: error.message || "Internal Server Error",
+    });
   }
 };
+
+// export const getOrderById = async (
+//   req: Request,
+//   res: Response
+// ): Promise<void> => {
+//   try {
+//     const orderId = Number(req.query.orderId);
+
+//     if (!req.query || !orderId) {
+//       res.status(404).json({
+//         success: false,
+//         message: "orderId is required",
+//       });
+//       return;
+//     }
+
+//     const order = await orderRepository.findOne({
+//       where: { id: orderId },
+//       relations: ["seller", "user"],
+//     });
+
+//     if (!order) {
+//       res.status(404).json({ success: false, message: "Order not found" });
+//       return;
+//     }
+
+//     res.status(200).json({
+//       success: true,
+//       data: order,
+//     });
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({ success: false, message: "Internal Server Error" });
+//   }
+// };
 
 export const getOrderById = async (
   req: Request,
@@ -241,8 +618,8 @@ export const getOrderById = async (
   try {
     const orderId = Number(req.query.orderId);
 
-    if (!req.query || !orderId) {
-      res.status(404).json({
+    if (!orderId) {
+      res.status(400).json({
         success: false,
         message: "orderId is required",
       });
@@ -251,7 +628,7 @@ export const getOrderById = async (
 
     const order = await orderRepository.findOne({
       where: { id: orderId },
-      relations: ["seller", "user", "product"],
+      // relations: ["user"],
     });
 
     if (!order) {
@@ -259,13 +636,50 @@ export const getOrderById = async (
       return;
     }
 
+    const productIds = Array.from(
+      new Set(order.orderedItems.map((item) => item.productId))
+    );
+
+    const products = await productRepository.findByIds(productIds);
+
+    const productMap = new Map(
+      products.map((product) => [product.id, product])
+    );
+
+    const orderedItemsWithDetails = order.orderedItems.map((item) => {
+      const product = productMap.get(item.productId);
+
+      if (!product) {
+        throw new Error(`Product with ID ${item.productId} not found`);
+      }
+
+      return {
+        productId: product.id,
+        title: product.title,
+        desc: product.desc,
+        price: product.price,
+        orderQuantity: item.quantity,
+        remainingStock: product.stock,
+        productimage: product.productimage,
+      };
+    });
+
+    const orderWithDetails = {
+      ...order,
+      orderedItems: orderedItemsWithDetails,
+    };
+
     res.status(200).json({
       success: true,
-      data: order,
+      message: "Order found successfully",
+      data: orderWithDetails,
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ success: false, message: "Internal Server Error" });
+    res.status(500).json({
+      success: false,
+      message: error.message || "Internal Server Error",
+    });
   }
 };
 

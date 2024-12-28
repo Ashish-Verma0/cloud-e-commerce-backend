@@ -204,7 +204,7 @@ export const verifySellerEmail = async (
     }
 
     const otpCode = crypto.randomInt(100000, 999999).toString();
-    const newOtpExpiry = new Date(currentTime.getTime() + 5 * 60 * 1000);
+    const newOtpExpiry = new Date(currentTime.getTime() + 1 * 60 * 1000);
 
     await sellerRepository.update(seller.id, {
       otpCode,
@@ -264,7 +264,9 @@ export const verifySellerOtp = async (
       });
       return;
     }
-
+    seller.shopVerified = true;
+    // console.log("seller", seller);
+    await sellerRepository.save(seller);
     res.status(200).json({
       success: true,
       message: "OTP verified successfully.",

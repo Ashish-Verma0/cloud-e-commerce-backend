@@ -179,16 +179,16 @@ export const getAllLocationBySeller = async (
       return;
     }
 
-    const pageNumber = parseInt(page, 10);
-    const pageSize = parseInt(limit, 10);
+    // const pageNumber = parseInt(page, 10);
+    // const pageSize = parseInt(limit, 10);
 
-    const offset = (pageNumber - 1) * pageSize;
+    // const offset = (pageNumber - 1) * pageSize;
 
     const [locations, totalCategories] =
       await sellerLocationRepository.findAndCount({
         where: { seller: { shopName } },
-        skip: offset,
-        take: pageSize,
+        // skip: offset,
+        // take: pageSize,
         // relations: ["seller"],
       });
 
@@ -200,19 +200,19 @@ export const getAllLocationBySeller = async (
       return;
     }
 
-    const totalPages = Math.ceil(totalCategories / pageSize);
+    // const totalPages = Math.ceil(totalCategories / pageSize);
 
     res.status(200).json({
       success: true,
       message: "Locations found successfully",
       data: {
         location: locations,
-        pagination: {
-          totalCategories,
-          totalPages,
-          currentPage: pageNumber,
-          resultPerPage: pageSize,
-        },
+        // pagination: {
+        //   totalCategories,
+        //   totalPages,
+        //   currentPage: pageNumber,
+        //   resultPerPage: pageSize,
+        // },
       },
     });
   } catch (error) {

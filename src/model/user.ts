@@ -1,5 +1,12 @@
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
+import {
+  Column,
+  Entity,
+  ManyToOne,
+  OneToMany,
+  PrimaryGeneratedColumn,
+} from "typeorm";
 import { Orders } from "./orders";
+import { UserLocation } from "./userLocation";
 
 @Entity()
 export class User {
@@ -19,7 +26,7 @@ export class User {
   password: string;
 
   @Column("simple-json", { nullable: true })
-  avatar: {
+  avatar?: {
     filename: string;
     path: string;
     mimetype: string;
@@ -27,4 +34,7 @@ export class User {
 
   @ManyToOne(() => Orders, (order) => order.user)
   orders: Orders;
+
+  @OneToMany(() => UserLocation, (userLocation) => userLocation.user)
+  userLocation: UserLocation[];
 }

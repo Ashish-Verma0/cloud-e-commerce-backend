@@ -9,6 +9,7 @@ import {
   getAllProducts,
   getAllProductsBySeller,
   getProductById,
+  searchProducts,
   sellerOutOfStockProduct,
   updateProduct,
 } from "../controller/product.";
@@ -71,6 +72,7 @@ productRoute.put(
   updateProduct
 );
 productRoute.get("/all", getAllProducts);
+productRoute.get("/search", searchProducts);
 productRoute.get("/all/seller", verifySellerToken, getAllProductsBySeller);
 productRoute.get("/all/out-stock", verifySellerToken, sellerOutOfStockProduct);
 productRoute.get("/productDetail", getProductById);

@@ -5,16 +5,22 @@ import { Seller } from "./seller";
 export class SellerLocation {
   @PrimaryGeneratedColumn()
   id: number;
+
   @Column()
   state: string;
+
   @Column()
   city: string;
+
   @Column()
   area: string;
+
   @Column()
   deliveryTime: string;
+
   @Column()
   deliveryPrice: string;
+
   @Column()
   pinCode: string;
 

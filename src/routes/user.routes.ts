@@ -39,8 +39,8 @@ userRoute.post("/create", imageUpload.single("avatar"), createUser);
 userRoute.post("/login", loginUser);
 userRoute.get("/profile", verifyToken, userProfile);
 userRoute.get("/user/:id", verifyToken, userById);
-userRoute.get("/update-user", verifyToken, userUpdate);
-userRoute.get("/update-password", verifyToken, updatePassword);
+userRoute.put("/update-user", verifyToken, userUpdate);
+userRoute.put("/update-password", verifyToken, updatePassword);
 userRoute.post("/verify-email", verifyEmail);
 userRoute.post("/forgot-password", forgotPassword);
 

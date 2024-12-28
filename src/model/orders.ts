@@ -28,23 +28,32 @@ export class Orders {
   @Column()
   transactionId: string;
 
+  // @ManyToOne(() => Product, (product) => product.orders)
+  // product: Product;
+
+  // @Column()
+  // quantity: number;
+
+  @Column("json")
+  orderedItems: {
+    productId: number;
+    quantity: number;
+  }[];
+
   @Column()
   subTotal: string;
 
+  @Column()
+  deliveryPrice: number;
+
   @Column({ default: "pending" })
   status: string;
-
-  @Column()
-  quantity: number;
 
   @ManyToOne(() => Seller, (seller) => seller.orders)
   seller: Seller;
 
   @ManyToOne(() => User, (user) => user.orders)
   user: User;
-
-  @ManyToOne(() => Product, (product) => product.orders)
-  product: Product;
 
   @CreateDateColumn()
   createdAt: Date;

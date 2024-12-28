@@ -454,7 +454,6 @@ export const getAllProducts = async (
       whereCondition.subCategory = { id: subCategory.id };
     }
 
-    // Count total products for pagination
     const totalProducts = await productRepository.count({
       where: whereCondition,
     });
@@ -474,7 +473,7 @@ export const getAllProducts = async (
       where: whereCondition,
       skip,
       take: resultPerPage,
-      // relations: ["seller", "category", "subCategory"], // Uncomment if relations are needed
+      relations: ["category"],
     });
 
     res.status(200).json({
@@ -593,7 +592,10 @@ export const getProductById = async (req, res) => {
       return;
     }
 
-    const productData = await productRepository.findOneBy({ id: productId });
+    const productData = await productRepository.find({
+      where: { id: productId },
+      relations: ["category"],
+    });
 
     if (!productData) {
       res.status(404).json({
@@ -840,5 +842,90 @@ export const sellerOutOfStockProduct = async (
       message: "Internal server error",
     });
     return;
+  }
+};
+
+export const searchProducts = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const { shopName, searchQuery, page = 1, resultPerPage = 10 } = req.query;
+
+    if (!searchQuery) {
+      res.status(400).json({
+        success: false,
+        message: "searchQuery is required",
+      });
+      return;
+    }
+
+    const seller = await sellerRepository.findOneBy({
+      shopName: shopName.toString(),
+    });
+
+    if (!seller) {
+      res.status(404).json({
+        success: false,
+        message: "seller not found",
+      });
+      return;
+    }
+
+    const query = productRepository
+      .createQueryBuilder("product")
+      .leftJoinAndSelect("product.category", "category")
+      .leftJoinAndSelect("product.subCategory", "subCategory")
+      .leftJoinAndSelect("product.seller", "seller")
+      .where(
+        `product.title = :searchQuery
+        OR product.desc = :searchQuery
+      `,
+        { searchQuery }
+      )
+      .orWhere(
+        `product.title ILIKE :partialQuery
+        OR product.desc ILIKE :partialQuery
+       `,
+        { partialQuery: `%${searchQuery}%` }
+      );
+
+    const totalProducts = await query.getCount();
+
+    if (!totalProducts) {
+      res.status(404).json({
+        success: false,
+        message: "No products found",
+      });
+      return;
+    }
+
+    const skip = (Number(page) - 1) * Number(resultPerPage);
+    const products = await query
+      .skip(skip)
+      .take(Number(resultPerPage))
+      .getMany();
+
+    const totalPages = Math.ceil(totalProducts / Number(resultPerPage));
+
+    res.status(200).json({
+      success: true,
+      message: "Products found successfully",
+      data: {
+        products,
+        pagination: {
+          totalProducts,
+          totalPages,
+          currentPage: Number(page),
+          resultPerPage: Number(resultPerPage),
+        },
+      },
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
   }
 };

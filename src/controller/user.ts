@@ -40,23 +40,25 @@ export const createUser = async (
   res: Response
 ): Promise<void> => {
   try {
-    if (!req?.file) {
-      throw new Error("File not uploaded");
-    }
-
+    // if (!req?.file) {
+    //   throw new Error("File not uploaded");
+    // }
     const passwoedHash = await bcrypt.hashSync(req.body.password, 10);
 
     const user = userRepository.create({
       ...req.body,
       password: passwoedHash,
-      avatar: req.file,
+      avatar: req?.file,
     });
 
     const savedUser = await userRepository.save(user);
 
-    res
-      .status(201)
-      .json({ message: "User created successfully", user: savedUser });
+    res.status(201).json({
+      success: true,
+      message: "User created successfully",
+      // status: 201,
+      user: savedUser,
+    });
   } catch (error) {
     console.error("Error creating user:", error);
     res.status(500).json({ message: "Error creating user", error });
@@ -147,7 +149,6 @@ export const userUpdate = async (
 ): Promise<void> => {
   try {
     const user = await userRepository.findOneBy({ id: req.user.id });
-
     if (!user) {
       res.status(404).json({
         success: false,
@@ -219,6 +220,7 @@ export const verifyEmail = async (
 ): Promise<void> => {
   try {
     const { email } = req.body;
+
     const user = await userRepository.findOneBy({ email });
 
     if (!user) {
@@ -238,7 +240,7 @@ export const verifyEmail = async (
       subject: "Reset Your Password",
       message: `
         <p>Click the link below to reset your password:</p>
-        <a href="http://localhost:3000/forgot/password/${token}" target="_blank">
+        <a href="http://192.168.1.20:3000/forgot-password/${token}" target="_blank">
           Reset Password
         </a>
         <p>If you did not request this, please ignore this email.</p>
@@ -272,9 +274,14 @@ export const forgotPassword = async (
       return;
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as {
+    const decoded = jwt.verify(token, data.jwt_secret as string) as {
       id: string;
     };
+
+    if (!decoded) {
+      res.status(401).json({ success: false, message: "Token is not valid" });
+      return;
+    }
 
     const user = await userRepository.findOneBy({ id: Number(decoded.id) });
 
@@ -284,8 +291,8 @@ export const forgotPassword = async (
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    user.password = hashedPassword;
 
+    user.password = hashedPassword;
     await userRepository.save(user);
 
     res.status(200).json({

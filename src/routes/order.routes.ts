@@ -1,6 +1,10 @@
 import express from "express";
 
-import { verifySellerToken, verifyToken } from "../../utils/verifyToken";
+import {
+  verifySellerToken,
+  verifyToken,
+  verifyUser,
+} from "../../utils/verifyToken";
 
 import {
   createOrder,
@@ -17,7 +21,7 @@ orderRoute.post("/create", verifyToken, createOrder);
 orderRoute.put("/update", verifySellerToken, updateOrder);
 orderRoute.get("/all/seller", verifySellerToken, getOrdersBySeller);
 orderRoute.get("/all/user", verifyToken, getOrdersByUser);
-orderRoute.get("/id", verifySellerToken, getOrderById);
+orderRoute.get("/id", verifyToken, getOrderById);
 orderRoute.delete("/delete", verifySellerToken, deleteOrder);
 
 export default orderRoute;
