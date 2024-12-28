@@ -28,7 +28,8 @@ const imageUpload = (0, multer_1.default)({
         cb(null, true);
     },
 });
-userRoute.post("/create", imageUpload.single("avatar"), user_1.createUser);
+userRoute.post("/create", user_1.createUser);
+// userRoute.post("/create", imageUpload.single("avatar"), createUser);
 userRoute.post("/login", user_1.loginUser);
 userRoute.get("/profile", verifyToken_1.verifyToken, user_1.userProfile);
 userRoute.get("/user/:id", verifyToken_1.verifyToken, user_1.userById);

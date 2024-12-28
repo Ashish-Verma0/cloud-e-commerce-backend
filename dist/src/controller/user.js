@@ -27,7 +27,12 @@ const createUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
         //   throw new Error("File not uploaded");
         // }
         const passwoedHash = yield bcryptjs_1.default.hashSync(req.body.password, 10);
-        const user = userRepository.create(Object.assign(Object.assign({}, req.body), { password: passwoedHash, avatar: (req === null || req === void 0 ? void 0 : req.file) || null }));
+        const user = userRepository.create(Object.assign(Object.assign({}, req.body), { password: passwoedHash }));
+        // const user = userRepository.create({
+        //   ...req.body,
+        //   password: passwoedHash,
+        //   avatar: req?.file || null,
+        // });
         const savedUser = yield userRepository.save(user);
         res.status(201).json({
             success: true,
