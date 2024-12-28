@@ -7,8 +7,7 @@
     "start": "ts-node src/server.ts",
     "dev": "nodemon src/server.ts",
     "build": "tsc",
-    "start_dev": "pm2 start ecosystem.config.js",
-    "start_prod": "pm2 start ecosystem.config.js"
+    "start_dev": "pm2 start ecosystem.config.js --env development"
   },
   "keywords": [],
   "author": "",

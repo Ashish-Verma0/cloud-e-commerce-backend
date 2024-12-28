@@ -9,10 +9,9 @@ module.exports = {
       watch: false,
       max_memory_restart: "500M",
       env: {
-        NODE_ENV: "production",
+        NODE_ENV: "development",
         PORT: process.env.PORT || 10000,
       },
     },
   ],
 };
-console.log("env", process.env.PORT);
