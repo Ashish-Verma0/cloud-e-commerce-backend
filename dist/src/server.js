@@ -12,7 +12,7 @@ const PORT = Number(process.env.PORT) || 4000;
 db_1.default.initialize()
     .then(() => {
     console.log("Database connected");
-    app_1.default.listen(PORT, () => {
+    app_1.default.listen(10000, () => {
         console.log(`Server is running ON PORT:-${PORT}`);
     });
 })
