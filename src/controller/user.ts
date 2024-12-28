@@ -48,8 +48,12 @@ export const createUser = async (
     const user = userRepository.create({
       ...req.body,
       password: passwoedHash,
-      avatar: req?.file,
     });
+    // const user = userRepository.create({
+    //   ...req.body,
+    //   password: passwoedHash,
+    //   avatar: req?.file || null,
+    // });
 
     const savedUser = await userRepository.save(user);
 
