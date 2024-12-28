@@ -6,15 +6,16 @@ Object.defineProperty(exports, "__esModule", { value: true });
 require("reflect-metadata");
 const db_1 = __importDefault(require("./db/db"));
 const app_1 = __importDefault(require("./app"));
+const dotenv_1 = __importDefault(require("dotenv"));
+dotenv_1.default.config();
 // import cluster from "node:cluster";
 // import { cpus } from "os";
-const contant_1 = require("../contant");
-const PORT = contant_1.PORTS || 4000;
+const PORT = Number(process.env.PORTS) || 4000;
 db_1.default.initialize()
     .then(() => {
     console.log("Database connected");
-    app_1.default.listen(PORT, () => {
-        console.log(`Server is running`);
+    app_1.default.listen(PORT, "0.0.0.0", () => {
+        console.log(`Server is running ON PORT:-${PORT}`);
     });
 })
     .catch((error) => {

@@ -13,7 +13,7 @@ const userLocation_1 = require("../model/userLocation");
 const AppDataSource = new typeorm_1.DataSource({
     type: "postgres",
     host: contant_1.dbConfig.Hostname || "localhost",
-    port: contant_1.dbConfig.Port || 5432,
+    port: Number(contant_1.dbConfig.Port) || 5432,
     username: contant_1.dbConfig.Username || "postgres",
     password: contant_1.dbConfig.Password || "postgres",
     database: contant_1.dbConfig.Database || "test",

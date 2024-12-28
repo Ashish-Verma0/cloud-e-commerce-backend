@@ -12,7 +12,7 @@ import { UserLocation } from "../model/userLocation";
 const AppDataSource = new DataSource({
   type: "postgres",
   host: dbConfig.Hostname || "localhost",
-  port: dbConfig.Port || 5432,
+  port: Number(dbConfig.Port) || 5432,
   username: dbConfig.Username || "postgres",
   password: dbConfig.Password || "postgres",
   database: dbConfig.Database || "test",
@@ -30,6 +30,7 @@ const AppDataSource = new DataSource({
   logging: false,
   dropSchema: true,
 });
+
 // const AppDataSource = new DataSource({
 //   type: "postgres",
 //   host: "localhost",
