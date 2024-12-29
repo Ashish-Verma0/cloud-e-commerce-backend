@@ -29,7 +29,7 @@ const AppDataSource = new typeorm_1.DataSource({
     ],
     synchronize: true,
     logging: false,
-    dropSchema: true,
+    // dropSchema: true,
 });
 // const AppDataSource = new DataSource({
 //   type: "postgres",
