@@ -317,7 +317,7 @@ export const getAllSellerSubCategory = async (
 ): Promise<void> => {
   try {
     const { shopName, page = 1, limit = 10 } = req.query;
-    console.log(req.query);
+
     if (!shopName) {
       res.status(400).json({
         success: false,

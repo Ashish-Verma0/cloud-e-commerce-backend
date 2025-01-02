@@ -6,7 +6,9 @@ import { User } from "../model/user";
 import AppDataSource from "../db/db";
 import sendToken from "../../utils/sendToken";
 import sendEmail from "../../utils/sendEmail";
+import { UserLocationDto } from "../dtos/create-userLocation.dtos";
 const userRepository = AppDataSource.getRepository(User);
+const locationRepository = AppDataSource.getRepository(UserLocationDto);
 
 interface MulterRequest extends Request {
   file?: {
@@ -218,6 +220,56 @@ export const updatePassword = async (
   }
 };
 
+const generateResetPasswordTemplate = (userName: string, resetLink: string) => {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body {
+          font-family: Arial, sans-serif;
+          line-height: 1.6;
+          color: #333;
+        }
+        .container {
+          max-width: 600px;
+          margin: 0 auto;
+          padding: 20px;
+          border: 1px solid #ddd;
+          border-radius: 8px;
+          background-color: #f9f9f9;
+        }
+        .btn {
+          display: inline-block;
+          padding: 10px 20px;
+          margin: 20px 0;
+          font-size: 16px;
+          color: #fff;
+          background-color: #007bff;
+          text-decoration: none;
+          border-radius: 4px;
+        }
+        .btn:hover {
+          background-color: #0056b3;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <h2>Hi ${userName},</h2>
+        <p>You recently requested to reset your password. Click the button below to reset it:</p>
+        <a href="${resetLink}" class="btn">Reset Password</a>
+        <p>If the button above does not work, copy and paste this URL into your browser:</p>
+        <p>${resetLink}</p>
+        <p>If you did not request a password reset, please ignore this email or contact support if you have concerns.</p>
+        <p>Thank you,</p>
+        <p>Your Company Team</p>
+      </div>
+    </body>
+    </html>
+  `;
+};
+
 export const verifyEmail = async (
   req: MulterForUpdateRequest,
   res: Response
@@ -239,16 +291,19 @@ export const verifyEmail = async (
       expiresIn: "1h",
     });
 
+    const resetLink = `http://192.168.1.12:3000/forgot-password/${token}`;
+
+    // Generate email data
     const emailData = {
       email: user.email,
       subject: "Reset Your Password",
-      message: `
-        <p>Click the link below to reset your password:</p>
-        <a href="http://192.168.1.20:3000/forgot-password/${token}" target="_blank">
-          Reset Password
-        </a>
-        <p>If you did not request this, please ignore this email.</p>
-      `,
+      message: `Hi ${
+        user.firstName || "User"
+      },\n\nYou recently requested to reset your password. Click the link below to reset it:\n${resetLink}\n\nIf you did not request a password reset, please ignore this email or contact support if you have concerns.\n\nThank you,\nYour Company Team`,
+      htmlTemplate: generateResetPasswordTemplate(
+        user.firstName || "User",
+        resetLink
+      ),
     };
 
     await sendEmail(emailData);

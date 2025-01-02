@@ -7,6 +7,7 @@ import { Seller } from "../model/seller";
 import { User } from "../model/user";
 import { Product } from "../model/product";
 import { CreateOrderDto, UpdateOrderDto } from "../dtos/create-order.dtos";
+import sendEmail from "../../utils/sendEmail";
 
 const orderRepository = AppDataSource.getRepository(Orders);
 const sellerRepository = AppDataSource.getRepository(Seller);
@@ -19,6 +20,44 @@ interface QueryRequest extends Request {
     shopName?: string;
   };
 }
+
+const generateOrderEmailTemplate = (
+  sellerName: string,
+  orderDetails: any
+): string => {
+  return `
+    <h1>Order Notification</h1>
+    <p>Dear ${sellerName},</p>
+    <p>A new order has been placed. Below are the details:</p>
+    <table style="border-collapse: collapse; width: 100%;">
+      <thead>
+        <tr>
+          <th style="border: 1px solid black; padding: 8px;">Product</th>
+          <th style="border: 1px solid black; padding: 8px;">Quantity</th>
+          <th style="border: 1px solid black; padding: 8px;">Price</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${orderDetails.orderedItems
+          .map(
+            (item: any) => `
+          <tr>
+            <td style="border: 1px solid black; padding: 8px;">${item.title}</td>
+            <td style="border: 1px solid black; padding: 8px;">${item.orderQuantity}</td>
+            <td style="border: 1px solid black; padding: 8px;">₹${item.price}</td>
+          </tr>
+        `
+          )
+          .join("")}
+      </tbody>
+    </table>
+    <p>Total Amount: ₹${orderDetails.orderedItems.reduce(
+      (total: number, item: any) => total + item.price * item.orderQuantity,
+      0
+    )}</p>
+    <p>Thank you!</p>
+  `;
+};
 
 export const createOrder = async (
   req: Request,
@@ -46,9 +85,10 @@ export const createOrder = async (
       });
       return;
     }
-
+    let productDetails: any[] = []; // Declare variables outside the transaction block
+    let newOrder: any;
     await AppDataSource.transaction(async (transactionalEntityManager) => {
-      const productDetails = await Promise.all(
+      productDetails = await Promise.all(
         orderedItem.map(async (item) => {
           const product = await transactionalEntityManager
             .getRepository(Product)
@@ -76,7 +116,7 @@ export const createOrder = async (
         })
       );
 
-      const newOrder = transactionalEntityManager.create(Orders, {
+      newOrder = transactionalEntityManager.create(Orders, {
         ...orderDetails,
         seller,
         user,
@@ -111,7 +151,23 @@ export const createOrder = async (
           })),
         },
       });
+
+      // email code
+      await sendEmail({
+        email: seller.ownerEmail,
+        subject: "New Order Notification",
+        message: "A new order has been placed. Please check the details below.",
+        htmlTemplate: generateOrderEmailTemplate(seller.shopName, {
+          ...newOrder,
+          orderedItems: productDetails.map((product) => ({
+            title: product.title,
+            price: product.price,
+            orderQuantity: product.orderQuantity,
+          })),
+        }),
+      });
     });
+
     return;
   } catch (error) {
     // console.error(error);
@@ -415,7 +471,11 @@ export const getOrdersBySeller = async (
         const product = productMap.get(item.productId);
 
         if (!product) {
-          throw new Error(`Product with ID ${item.productId} not found`);
+          res.status(404).json({
+            success: false,
+            message: `Product with ID ${item.productId} not found`,
+          });
+          return;
         }
 
         return {

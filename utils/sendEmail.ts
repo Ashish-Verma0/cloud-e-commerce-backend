@@ -4,6 +4,7 @@ type EmailOptions = {
   email: string;
   subject: string;
   message: string;
+  htmlTemplate?: string;
 };
 
 const sendEmail = async (options: EmailOptions): Promise<void> => {
@@ -22,6 +23,7 @@ const sendEmail = async (options: EmailOptions): Promise<void> => {
     to: options.email,
     subject: options.subject,
     text: options.message,
+    html: options.htmlTemplate,
   };
 
   await transporter.sendMail(mailOptions);

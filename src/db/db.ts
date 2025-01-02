@@ -28,7 +28,7 @@ const AppDataSource = new DataSource({
   ],
   synchronize: true,
   logging: false,
-  // dropSchema: true,
+  dropSchema: true,
 });
 
 // const AppDataSource = new DataSource({

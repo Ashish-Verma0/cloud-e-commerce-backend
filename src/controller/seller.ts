@@ -174,6 +174,74 @@ export const sellerProfile = async (
   }
 };
 
+function generateSellerVerificationTemplate(
+  ownerName: string,
+  otpCode: string
+): string {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body {
+          font-family: Arial, sans-serif;
+          background-color: #f9f9f9;
+          margin: 0;
+          padding: 0;
+        }
+        .container {
+          max-width: 600px;
+          margin: 20px auto;
+          padding: 20px;
+          background-color: #ffffff;
+          border: 1px solid #ddd;
+          border-radius: 8px;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+          font-size: 20px;
+          color: #333;
+          margin-bottom: 20px;
+        }
+        .otp-code {
+          font-size: 24px;
+          font-weight: bold;
+          color: #007bff;
+          text-align: center;
+          margin: 20px 0;
+        }
+        .footer {
+          font-size: 12px;
+          color: #666;
+          margin-top: 20px;
+          text-align: center;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          Hello ${ownerName},
+        </div>
+        <p>
+          Thank you for using our platform. To verify your email address, please use the OTP provided below:
+        </p>
+        <div class="otp-code">${otpCode}</div>
+        <p>
+          This OTP is valid for <strong>5 minutes</strong>. If you did not request this verification, please ignore this email or contact our support team for assistance.
+        </p>
+        <p>
+          Thank you for your cooperation.
+        </p>
+        <div class="footer">
+          &copy; ${new Date().getFullYear()} Your Company. All rights reserved.
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
 export const verifySellerEmail = async (
   req: Request,
   res: Response
@@ -211,14 +279,26 @@ export const verifySellerEmail = async (
       otpExpiry: newOtpExpiry,
     });
 
+    // const emailData = {
+    //   email: seller.ownerEmail,
+    //   subject: "Your Verification Code",
+    //   message: `
+    //     <p>Your OTP for verification is: <strong>${otpCode}</strong></p>
+    //     <p>This OTP will expire in 5 minutes.</p>
+    //     <p>If you did not request this, please ignore this email.</p>
+    //   `,
+    // };
+
     const emailData = {
       email: seller.ownerEmail,
       subject: "Your Verification Code",
-      message: `
-        <p>Your OTP for verification is: <strong>${otpCode}</strong></p>
-        <p>This OTP will expire in 5 minutes.</p>
-        <p>If you did not request this, please ignore this email.</p>
-      `,
+      message: `Hi ${
+        seller.ownerName || "Seller"
+      },\n\nThank you for using our platform. Your OTP for email verification is: ${otpCode}.\n\nThis OTP will expire in 5 minutes. If you did not request this, please ignore this email or contact our support team for assistance.\n\nThank you,\nYour Company Team`,
+      htmlTemplate: generateSellerVerificationTemplate(
+        seller.ownerName || "Seller",
+        otpCode
+      ),
     };
 
     await sendEmail(emailData);

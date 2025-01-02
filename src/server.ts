@@ -10,7 +10,7 @@ const PORT = Number(process.env.PORT) || 4000;
 AppDataSource.initialize()
   .then(() => {
     console.log("Database connected");
-    app.listen(10000, () => {
+    app.listen(PORT, () => {
       console.log(`Server is running ON PORT:-${PORT}`);
     });
   })

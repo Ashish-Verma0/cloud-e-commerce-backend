@@ -674,7 +674,6 @@ export const createBulkProduct = async (
         row.price = Number(row.price);
         row.stock = Number(row.stock);
         row.rating = row.rating ? Number(row.rating) : undefined;
-
         if (!shopName || !categoryName) {
           throw new Error("shopName and categoryName must be provided");
         }
@@ -712,13 +711,13 @@ export const createBulkProduct = async (
         }
 
         const alreadyExists = await productRepository.find({
-          where: { title: productDto.title },
+          where: { title: productDto?.title },
         });
 
-        if (alreadyExists) {
+        if (alreadyExists?.length > 0) {
           res.status(409).json({
             success: false,
-            message: `Product Title Already Exists ${alreadyExists[0].title}`,
+            message: `Product Title Already Exists ${alreadyExists[0]?.title}`,
           });
           return;
         }
